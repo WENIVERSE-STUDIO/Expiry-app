@@ -1,0 +1,16 @@
+{
+  "name": "만료일 비서",
+  "short_name": "만료일",
+  "description": "한 번 등록하면 알아서 알려주는 생활 만료일 비서",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0b0f",
+  "theme_color": "#0b0b0f",
+  "lang": "ko",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
