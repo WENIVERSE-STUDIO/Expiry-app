@@ -1,5 +1,5 @@
 // 오프라인에서도 열리도록 앱 파일을 캐시한다. 파일을 바꾸면 VERSION을 올릴 것.
-const VERSION = "v1";
+const VERSION = "v2";
 const ASSETS = [
   "./",
   "index.html",
@@ -7,6 +7,7 @@ const ASSETS = [
   "js/app.js",
   "js/dates.js",
   "js/categories.js",
+  "js/calendar.js",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/icon-192.png",

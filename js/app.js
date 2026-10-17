@@ -1,8 +1,10 @@
 import { CATEGORIES, UNIT_LABELS } from "./categories.js";
 import { daysBetween, dDayLabel, formatDate, nextDue, status, today } from "./dates.js";
+import { buildICS, eventTitle, googleCalendarUrl, icsFileName } from "./calendar.js";
 
 const STORAGE_KEY = "expiry-app/items";
 const NOTIFIED_KEY = "expiry-app/notified-on";
+const CALENDAR_PREF_KEY = "expiry-app/add-to-calendar";
 
 const $ = (sel) => document.querySelector(sel);
 const list = $("#list");
@@ -90,17 +92,22 @@ function renderItem(item) {
   const actions = document.createElement("div");
   actions.className = "item__actions";
   if (!item.repeat) actions.append(miniButton("새로 시작", () => renew(item.id)));
-  actions.append(miniButton("수정", () => openDialog(item.id)), miniButton("삭제", () => remove(item.id)));
+  actions.append(
+    miniButton("📅", () => openCalendarDialog(item.id), "캘린더에 추가"),
+    miniButton("수정", () => openDialog(item.id)),
+    miniButton("삭제", () => remove(item.id))
+  );
   side.append(badge, actions);
 
   li.append(emoji, body, side);
   return li;
 }
 
-function miniButton(label, onClick) {
+function miniButton(label, onClick, ariaLabel) {
   const b = document.createElement("button");
   b.className = "mini";
   b.textContent = label;
+  if (ariaLabel) b.setAttribute("aria-label", ariaLabel);
   b.addEventListener("click", onClick);
   return b;
 }
@@ -111,6 +118,7 @@ function renew(id) {
   items = items.map((i) => (i.id === id ? { ...i, start: formatDate(today()) } : i));
   save();
   render();
+  if (calendarPreferred()) openCalendarDialog(id, "날짜가 바뀌었어요. 캘린더 일정도 새 날짜로 추가해 주세요.");
 }
 
 function remove(id) {
@@ -193,9 +201,11 @@ function openDialog(id = null) {
     form.amount.value = item.amount;
     form.unit.value = item.unit;
     form.repeat.checked = item.repeat;
+    form.calendar.checked = false;
     setFormCategory(item.category, { applyDefaults: false });
   } else {
     form.start.value = formatDate(today());
+    form.calendar.checked = calendarPreferred();
     setFormCategory(filter !== "all" ? filter : "cosmetic", { applyDefaults: true });
   }
   dialog.showModal();
@@ -205,17 +215,68 @@ form.addEventListener("input", updatePreview);
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const data = readForm();
-  if (editingId) {
+  const wasEditing = Boolean(editingId);
+  let id = editingId;
+  if (wasEditing) {
     items = items.map((i) => (i.id === editingId ? { ...i, ...data } : i));
   } else {
-    items.push({ id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...data });
+    id = crypto.randomUUID();
+    items.push({ id, createdAt: new Date().toISOString(), ...data });
+    setCalendarPreferred(form.calendar.checked);
   }
   save();
   dialog.close();
   render();
+  if (form.calendar.checked) {
+    openCalendarDialog(id, wasEditing ? "수정한 내용으로 캘린더에 다시 추가해 주세요." : "저장했어요. 이제 캘린더에도 넣어둘게요.");
+  }
 });
 $("#cancel-btn").addEventListener("click", () => dialog.close());
 $("#add-btn").addEventListener("click", () => openDialog());
+
+// ----- 캘린더 연동 -----
+const calDialog = $("#cal-dialog");
+let calendarItemId = null;
+
+function calendarPreferred() {
+  return localStorage.getItem(CALENDAR_PREF_KEY) === "on";
+}
+function setCalendarPreferred(on) {
+  localStorage.setItem(CALENDAR_PREF_KEY, on ? "on" : "off");
+}
+
+function openCalendarDialog(id, message = "캘린더 앱이 앱 대신 미리 알려드려요.") {
+  const item = withDue(items.find((i) => i.id === id));
+  const cat = CATEGORIES[item.category];
+  calendarItemId = id;
+  $("#cal-desc").textContent = message;
+  $("#cal-event").textContent = `${eventTitle(item, cat)} · ${formatDate(item.due)}${item.repeat ? " (반복)" : ""}`;
+  $("#cal-note").textContent = `알림: ${item.notice}일 전 오전 9시, 당일 오전 9시` +
+    " · 구글 캘린더 링크는 캘린더 기본 알림이 적용돼요. 같은 항목을 다시 추가하면 일정이 겹칠 수 있으니 예전 일정은 지워 주세요.";
+  calDialog.showModal();
+}
+
+$("#cal-ics").addEventListener("click", () => {
+  const item = items.find((i) => i.id === calendarItemId);
+  const blob = new Blob([buildICS(item, CATEGORIES[item.category])], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = icsFileName(item);
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  calDialog.close();
+});
+
+$("#cal-google").addEventListener("click", () => {
+  const item = items.find((i) => i.id === calendarItemId);
+  window.open(googleCalendarUrl(item, CATEGORIES[item.category]), "_blank", "noopener");
+  calDialog.close();
+});
+
+$("#cal-close").addEventListener("click", () => calDialog.close());
 
 // ----- 알림 -----
 // 지금 단계에서는 앱을 열 때 하루 한 번 요약 알림을 띄운다.

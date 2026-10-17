@@ -76,6 +76,10 @@
         <input name="repeat" type="checkbox"> 주기마다 반복
       </label>
 
+      <label class="check">
+        <input name="calendar" type="checkbox"> 📅 저장 후 내 캘린더에도 추가
+      </label>
+
       <p class="preview" id="preview"></p>
 
       <div class="actions">
@@ -83,6 +87,26 @@
         <button type="submit" class="btn btn--primary">저장</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="cal-dialog">
+    <div class="cal">
+      <h2>📅 캘린더에 추가</h2>
+      <p class="cal__desc" id="cal-desc"></p>
+      <p class="cal__event" id="cal-event"></p>
+      <button type="button" class="btn btn--primary cal__btn" id="cal-ics">
+        기본 캘린더에 추가
+        <small>아이폰 · 삼성 · 네이버 캘린더 (.ics 파일)</small>
+      </button>
+      <button type="button" class="btn btn--ghost cal__btn" id="cal-google">
+        구글 캘린더에 추가
+        <small>안드로이드에서 구글 캘린더를 쓴다면</small>
+      </button>
+      <p class="hint" id="cal-note"></p>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost" id="cal-close">닫기</button>
+      </div>
+    </div>
   </dialog>
 
   <script type="module" src="js/app.js"></script>
